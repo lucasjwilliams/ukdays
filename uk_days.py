@@ -148,9 +148,12 @@ def build_page(events: list) -> str:
 <title>UK Days · {date_str}</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,{favicon}">
 <script>
+  const root = document.documentElement;
+  root.dataset.view = "compact";
   try {{
     const theme = localStorage.getItem("theme");
-    if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+    if (theme === "light" || theme === "dark") root.dataset.theme = theme;
+    if (localStorage.getItem("view") === "large") root.dataset.view = "large";
   }} catch (e) {{}}
 </script>
 <style>
@@ -205,9 +208,9 @@ def build_page(events: list) -> str:
   }}
   .controls {{ display: flex; align-items: center; gap: 6px; }}
   .controls button {{
-    display: grid; place-items: center; width: 32px; height: 28px; padding: 0; border: 0;
-    border-radius: 6px; background: none; color: var(--muted); cursor: pointer;
-    transition: color .15s, background-color .15s;
+    display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0;
+    border-radius: 8px; background: var(--rule); color: var(--muted); cursor: pointer;
+    transition: color .15s;
   }}
   .controls button:hover {{ color: var(--ink); }}
   .controls button:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 1px; }}
@@ -215,10 +218,8 @@ def build_page(events: list) -> str:
     width: 16px; height: 16px; fill: none; stroke: currentColor;
     stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
   }}
-  .view {{ display: flex; padding: 2px; border-radius: 8px; background: var(--rule); }}
-  .view button[aria-pressed="true"] {{ background: var(--card); color: var(--ink); }}
-  .controls .theme {{ height: 32px; border-radius: 8px; }}
-  .theme:hover {{ background: var(--rule); }}
+  .view .to-compact, [data-view="large"] .view .to-large {{ display: none; }}
+  [data-view="large"] .view .to-compact {{ display: block; }}
   .theme .sun {{ display: var(--sun); }}
   .theme .moon {{ display: var(--moon); }}
   [data-view="large"] ol {{ gap: 20px; }}
@@ -246,14 +247,10 @@ def build_page(events: list) -> str:
       <h1>{date_str}</h1>
     </div>
     <div class="controls">
-      <div class="view" role="group" aria-label="Layout">
-        <button type="button" data-set="large" aria-label="Large images" title="Large images">
-          <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.75" y="2.75" width="10.5" height="7" rx="1.5"/><path d="M2.75 13.25h6.5"/></svg>
-        </button>
-        <button type="button" data-set="compact" aria-label="Compact list" title="Compact list">
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.75 4h10.5M2.75 8h10.5M2.75 12h10.5"/></svg>
-        </button>
-      </div>
+      <button type="button" class="view" aria-label="Switch between large and compact layout" title="Large / compact">
+        <svg class="to-compact" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.75 4h10.5M2.75 8h10.5M2.75 12h10.5"/></svg>
+        <svg class="to-large" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.75" y="2.75" width="10.5" height="7" rx="1.5"/><path d="M2.75 13.25h6.5"/></svg>
+      </button>
       <button type="button" class="theme" aria-label="Switch between light and dark theme" title="Light / dark">
         <svg class="moon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.2A5.75 5.75 0 0 1 6.8 2.5a5.75 5.75 0 1 0 6.7 6.7z"/></svg>
         <svg class="sun" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.75"/><path d="M8 1.5V3M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1.06 1.06M11.54 11.54l1.06 1.06M3.4 12.6l1.06-1.06M11.54 4.46l1.06-1.06"/></svg>
@@ -268,18 +265,10 @@ def build_page(events: list) -> str:
 </main>
 <script>
   // Layout switch
-  const root = document.documentElement, buttons = document.querySelectorAll(".view button");
-  function setView(view) {{
-    root.dataset.view = view;
-    buttons.forEach(b => b.setAttribute("aria-pressed", b.dataset.set === view));
-  }}
-  let saved = null;
-  try {{ saved = localStorage.getItem("view"); }} catch (e) {{}}
-  setView(saved === "compact" ? "compact" : "large");
-  buttons.forEach(b => b.addEventListener("click", () => {{
-    setView(b.dataset.set);
-    try {{ localStorage.setItem("view", b.dataset.set); }} catch (e) {{}}
-  }}));
+  document.querySelector(".view").addEventListener("click", () => {{
+    root.dataset.view = root.dataset.view === "large" ? "compact" : "large";
+    try {{ localStorage.setItem("view", root.dataset.view); }} catch (e) {{}}
+  }});
 
   // Theme switch
   document.querySelector(".theme").addEventListener("click", () => {{
